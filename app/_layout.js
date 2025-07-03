@@ -7,9 +7,9 @@ import { View, TouchableOpacity, StyleSheet } from "react-native";
 
 // Map tab names to icons
 const TAB_ICONS = {
-  recipes: ["search-outline", "search"],
   "meal-plans": ["calendar-outline", "calendar"],
-  "grocery-lists": ["cart-outline", "cart"],
+  "grocery-lists": ["list-outline", "list"],
+  recipes: ["search-outline", "search"],
   favorites: ["heart-outline", "heart"],
   profile: ["person-circle-outline", "person-circle"],
 };
@@ -101,9 +101,9 @@ export default function RootLayout() {
             headerShown: false,
           }}
         >
-          <Tabs.Screen name="recipes" />
           <Tabs.Screen name="meal-plans" />
           <Tabs.Screen name="grocery-lists" />
+          <Tabs.Screen name="recipes" />
           <Tabs.Screen name="favorites" />
           <Tabs.Screen name="profile" />
         </Tabs>
