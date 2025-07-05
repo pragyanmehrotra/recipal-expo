@@ -4,6 +4,10 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { useAuth } from "@clerk/clerk-expo";
+import LoadingSpinner from "../components/LoadingSpinner";
+import SignInScreen from "./sign-in";
+import { ClerkProviderWithConfig } from "../auth/clerk";
 
 // Map tab names to icons
 const TAB_ICONS = {
@@ -82,32 +86,43 @@ const styles = StyleSheet.create({
   },
 });
 
+function AuthGate({ children }) {
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) return <LoadingSpinner message="Loading..." />;
+  if (!isSignedIn) return <SignInScreen />;
+  return children;
+}
+
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <SafeAreaView
-        edges={["top", "bottom"]}
-        style={{ flex: 1, backgroundColor: "#1a1a1a" }}
-      >
-        <StatusBar
-          style="light"
-          backgroundColor="#1a1a1a"
-          translucent={false}
-        />
-        <Tabs
-          tabBar={(props) => <CustomTabBar {...props} />}
-          screenOptions={{
-            tabBarStyle: { backgroundColor: "#1a1a1a" },
-            headerShown: false,
-          }}
+    <ClerkProviderWithConfig>
+      <SafeAreaProvider>
+        <SafeAreaView
+          edges={["top", "bottom"]}
+          style={{ flex: 1, backgroundColor: "#1a1a1a" }}
         >
-          <Tabs.Screen name="meal-plans" />
-          <Tabs.Screen name="grocery-lists" />
-          <Tabs.Screen name="recipes" />
-          <Tabs.Screen name="favorites" />
-          <Tabs.Screen name="profile" />
-        </Tabs>
-      </SafeAreaView>
-    </SafeAreaProvider>
+          <StatusBar
+            style="light"
+            backgroundColor="#1a1a1a"
+            translucent={false}
+          />
+          <AuthGate>
+            <Tabs
+              tabBar={(props) => <CustomTabBar {...props} />}
+              screenOptions={{
+                tabBarStyle: { backgroundColor: "#1a1a1a" },
+                headerShown: false,
+              }}
+            >
+              <Tabs.Screen name="meal-plans" />
+              <Tabs.Screen name="grocery-lists" />
+              <Tabs.Screen name="recipes" />
+              <Tabs.Screen name="favorites" />
+              <Tabs.Screen name="profile" />
+            </Tabs>
+          </AuthGate>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </ClerkProviderWithConfig>
   );
 }
