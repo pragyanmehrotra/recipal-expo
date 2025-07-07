@@ -76,6 +76,10 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
   const fetchUserProfile = async (token) => {
     try {
       const response = await fetch(
@@ -101,7 +105,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, jwt, loading, signIn, signUp, signOut }}
+      value={{ user, jwt, loading, signIn, signUp, signOut, updateUser }}
     >
       {children}
     </AuthContext.Provider>

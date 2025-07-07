@@ -12,8 +12,8 @@ export default function SignUpScreen({ onNavigateToSignIn, onSignUpSuccess }) {
   const { signUp } = useAuth();
 
   const handleSignUp = async () => {
-    if (!email || !password || !confirmPassword || !name) {
-      Alert.alert("Error", "Please fill in all fields");
+    if (!email || !password || !confirmPassword) {
+      Alert.alert("Error", "Please fill in email and password fields");
       return;
     }
     if (password !== confirmPassword) {
@@ -26,7 +26,7 @@ export default function SignUpScreen({ onNavigateToSignIn, onSignUpSuccess }) {
     }
     setIsLoading(true);
 
-    const result = await signUp(email, password, name);
+    const result = await signUp(email, password, name || "");
 
     if (!result.success) {
       Alert.alert("Error", result.error || "Sign up failed");
@@ -50,7 +50,7 @@ export default function SignUpScreen({ onNavigateToSignIn, onSignUpSuccess }) {
       />
       <View style={styles.form}>
         <Input
-          placeholder="Full name"
+          placeholder="Full name (optional)"
           value={name}
           onChangeText={setName}
           autoCapitalize="words"
