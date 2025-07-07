@@ -1,26 +1,12 @@
-import { useAuth } from "@clerk/clerk-expo";
+import * as SecureStore from "expo-secure-store";
 import { API_CONFIG } from "../constants";
 
 // Create API client with authentication
 export function useApiClient() {
-  const { getToken, isLoaded } = useAuth();
-
-  // Don't return API client until Clerk is loaded
-  if (!isLoaded) {
-    return null;
-  }
+  // No Clerk, so no isLoaded check
 
   const makeRequest = async (endpoint, options = {}) => {
-    let token = null;
-
-    // Only try to get token if getToken function exists (Clerk is loaded)
-    if (getToken && typeof getToken === "function") {
-      try {
-        token = await getToken();
-      } catch (error) {
-        console.warn("Failed to get auth token:", error);
-      }
-    }
+    let token = await SecureStore.getItemAsync("jwt");
 
     const config = {
       headers: {
@@ -35,11 +21,9 @@ export function useApiClient() {
 
     try {
       const response = await fetch(url, config);
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       return await response.json();
     } catch (error) {
       console.error("API request failed:", error);

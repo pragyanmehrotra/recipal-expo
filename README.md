@@ -194,6 +194,44 @@ The app includes a custom Tamagui configuration (`tamagui.config.js`) with:
    - Check the configuration in `tamagui.config.js`
    - Verify the provider is wrapping your app
 
+### Email Verification Issues
+
+**Problem**: Not receiving verification codes during development
+
+**Cause**: Clerk development instances have very limited email sending capabilities (only 2 emails per hour)
+
+**Solutions**:
+
+1. **For Development Testing**:
+
+   - Use the OTP verification screen in the app
+   - Enter the 6-digit code sent to your email
+   - Click "Resend Code" if needed
+   - Check spam/junk folders
+   - Wait up to 1 hour between code attempts
+
+2. **For Production**:
+
+   - Upgrade to a paid Clerk plan
+   - Configure email providers (SendGrid, Mailgun, etc.) in Clerk dashboard
+   - Set up proper email templates
+
+3. **Alternative Testing**:
+
+   - Use Clerk's test email feature in the dashboard
+   - Create test accounts with real email addresses
+   - Use the Clerk dashboard to manually verify emails
+
+4. **Bypass Verification (Development Only)**:
+
+   - In Clerk dashboard, go to Users → [User] → Actions → Verify Email
+   - This manually verifies the email without sending an email
+
+5. **OTP Verification (Recommended)**:
+   - The app now uses OTP codes instead of email links
+   - Codes are typically 6 digits and easier to enter
+   - More reliable than email links in development
+
 ## 📄 License
 
 This project is part of the ReciPal meal planning application.

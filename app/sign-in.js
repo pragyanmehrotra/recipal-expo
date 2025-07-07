@@ -1,63 +1,31 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Alert } from "react-native";
-import { useSignIn } from "@clerk/clerk-expo";
-import { useRouter } from "expo-router";
 import { Container, Text, Header, Button, Input, Divider } from "../components";
+import { useAuth } from "../hooks/auth";
 
-export default function SignInScreen() {
-  const { signIn, setActive, isLoaded } = useSignIn();
-  const router = useRouter();
-
+export default function SignInScreen({ onNavigateToSignUp, onSignInSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { signIn } = useAuth();
 
   const handleSignIn = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
-
     setIsLoading(true);
 
-    try {
-      const result = await signIn.create({
-        identifier: email,
-        password,
-      });
+    const result = await signIn(email, password);
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        // Navigation will be handled by AuthGate in _layout.js
-      } else {
-        Alert.alert("Error", "Sign in failed. Please try again.");
-      }
-    } catch (error) {
-      console.error("Sign in error:", error);
-      Alert.alert("Error", error.errors?.[0]?.message || "Sign in failed");
-    } finally {
-      setIsLoading(false);
+    if (!result.success) {
+      Alert.alert("Error", result.error || "Sign in failed");
+    } else if (onSignInSuccess) {
+      onSignInSuccess();
     }
-  };
 
-  const handleSignUp = () => {
-    router.push("/sign-up");
+    setIsLoading(false);
   };
-
-  if (!isLoaded) {
-    return (
-      <Container>
-        <Text
-          variant="body"
-          size="large"
-          color="muted"
-          style={{ textAlign: "center" }}
-        >
-          Loading...
-        </Text>
-      </Container>
-    );
-  }
 
   return (
     <Container padding="large">
@@ -70,7 +38,6 @@ export default function SignInScreen() {
         marginTop={40}
         marginBottom={40}
       />
-
       <View style={styles.form}>
         <Input
           placeholder="Email address"
@@ -80,7 +47,6 @@ export default function SignInScreen() {
           autoCapitalize="none"
           autoComplete="email"
         />
-
         <Input
           placeholder="Password"
           value={password}
@@ -88,7 +54,6 @@ export default function SignInScreen() {
           secureTextEntry={true}
           autoComplete="password"
         />
-
         <Button
           title={isLoading ? "Signing In..." : "Sign In"}
           onPress={handleSignIn}
@@ -96,9 +61,7 @@ export default function SignInScreen() {
           style={styles.signInButton}
         />
       </View>
-
       <Divider margin="large" />
-
       <View style={styles.footer}>
         <Text
           variant="body"
@@ -112,7 +75,7 @@ export default function SignInScreen() {
           title="Create Account"
           variant="ghost"
           size="medium"
-          onPress={handleSignUp}
+          onPress={onNavigateToSignUp}
           style={styles.signUpButton}
         />
       </View>
@@ -121,16 +84,8 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  form: {
-    marginBottom: 20,
-  },
-  signInButton: {
-    marginTop: 20,
-  },
-  footer: {
-    alignItems: "center",
-  },
-  signUpButton: {
-    marginTop: 10,
-  },
+  form: { marginBottom: 20 },
+  signInButton: { marginTop: 20 },
+  footer: { alignItems: "center" },
+  signUpButton: { marginTop: 10 },
 });

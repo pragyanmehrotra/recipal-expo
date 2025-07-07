@@ -2,12 +2,11 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
-import { useAuth } from "@clerk/clerk-expo";
-import LoadingSpinner from "../components/LoadingSpinner";
+import React, { useState } from "react";
+import { View, TouchableOpacity, StyleSheet, Text } from "react-native";
+import { AuthProvider, useAuth } from "../hooks/auth";
 import SignInScreen from "./sign-in";
-import { ClerkProviderWithConfig } from "../auth/clerk";
+import SignUpScreen from "./sign-up";
 
 // Map tab names to icons
 const TAB_ICONS = {
@@ -87,15 +86,39 @@ const styles = StyleSheet.create({
 });
 
 function AuthGate({ children }) {
-  const { isLoaded, isSignedIn } = useAuth();
-  if (!isLoaded) return <LoadingSpinner message="Loading..." />;
-  if (!isSignedIn) return <SignInScreen />;
+  const { user, loading } = useAuth();
+  const [showSignUp, setShowSignUp] = useState(false);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+  if (!user) {
+    // Show sign-in or sign-up screen based on state
+    if (showSignUp) {
+      return (
+        <SignUpScreen
+          onNavigateToSignIn={() => setShowSignUp(false)}
+          onSignUpSuccess={() => setShowSignUp(false)}
+        />
+      );
+    }
+    return (
+      <SignInScreen
+        onNavigateToSignUp={() => setShowSignUp(true)}
+        onSignInSuccess={() => {}}
+      />
+    );
+  }
   return children;
 }
 
 export default function RootLayout() {
   return (
-    <ClerkProviderWithConfig>
+    <AuthProvider>
       <SafeAreaProvider>
         <SafeAreaView
           edges={["top", "bottom"]}
@@ -123,6 +146,6 @@ export default function RootLayout() {
           </AuthGate>
         </SafeAreaView>
       </SafeAreaProvider>
-    </ClerkProviderWithConfig>
+    </AuthProvider>
   );
 }
