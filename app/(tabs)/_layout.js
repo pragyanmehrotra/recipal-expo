@@ -9,9 +9,9 @@ import SignUpScreen from "../sign-up";
 import VerifyEmailScreen from "../verify-email";
 
 const TAB_ICONS = {
+  browse: ["search-outline", "search"],
   "meal-plans": ["calendar-outline", "calendar"],
   "grocery-lists": ["list-outline", "list"],
-  recipes: ["search-outline", "search"],
   favorites: ["heart-outline", "heart"],
   profile: ["person-circle-outline", "person-circle"],
 };
@@ -142,10 +142,11 @@ export default function TabsLayout() {
             tabBarStyle: { backgroundColor: "#1a1a1a" },
             headerShown: false,
           }}
+          initialRouteName="browse"
         >
           <Tabs.Screen name="meal-plans" />
           <Tabs.Screen name="grocery-lists" />
-          <Tabs.Screen name="recipes" />
+          <Tabs.Screen name="browse" />
           <Tabs.Screen name="favorites" />
           <Tabs.Screen name="profile" />
         </Tabs>
