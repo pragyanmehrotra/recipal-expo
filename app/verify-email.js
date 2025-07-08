@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Alert } from "react-native";
-import { useSignUp } from "@clerk/clerk-expo";
 import { Container, Text, Header, Button, Input, Divider } from "../components";
+import { useAuth } from "../hooks/auth";
 
-export default function VerifyEmailScreen({ onNavigateToSignIn }) {
-  const { signUp, isLoaded } = useSignUp();
+export default function VerifyEmailScreen({
+  onNavigateToSignIn,
+  onVerificationSuccess,
+}) {
+  const { user, verifyEmail, resendVerification } = useAuth();
   const [isResending, setIsResending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
@@ -18,35 +21,34 @@ export default function VerifyEmailScreen({ onNavigateToSignIn }) {
     setIsVerifying(true);
 
     try {
-      const result = await signUp.attemptEmailAddressVerification({
-        code: verificationCode,
-      });
+      const result = await verifyEmail(user?.email, verificationCode);
 
-      console.log("Verification result:", result.status);
-
-      if (result.status === "complete") {
+      if (result.success) {
         Alert.alert(
           "Success!",
-          "Your email has been verified successfully. You can now sign in.",
+          "Your email has been verified successfully. You can now use the app.",
           [
             {
               text: "OK",
               onPress: () => {
-                if (onNavigateToSignIn) {
-                  onNavigateToSignIn();
+                if (onVerificationSuccess) {
+                  onVerificationSuccess();
                 }
               },
             },
           ]
         );
       } else {
-        Alert.alert("Error", "Invalid verification code. Please try again.");
+        Alert.alert(
+          "Error",
+          result.error || "Verification failed. Please try again."
+        );
       }
     } catch (error) {
       console.error("Verification error:", error);
       Alert.alert(
         "Error",
-        error.errors?.[0]?.message || "Verification failed. Please try again."
+        error.message || "Verification failed. Please try again."
       );
     } finally {
       setIsVerifying(false);
@@ -57,29 +59,25 @@ export default function VerifyEmailScreen({ onNavigateToSignIn }) {
     setIsResending(true);
 
     try {
-      await signUp.prepareEmailAddressVerification({
-        strategy: "email_code", // Use OTP code instead of email link
-      });
-      Alert.alert(
-        "Code Sent",
-        "A new verification code has been sent to your email. Please check your inbox and spam folder.\n\nNote: Development instances have limited email sending (2 per hour)."
-      );
-    } catch (error) {
-      console.error("Resend error:", error);
+      const result = await resendVerification(user?.email);
 
-      // Check if it's a rate limit error
-      if (error.errors?.[0]?.code === "rate_limit_exceeded") {
+      if (result.success) {
         Alert.alert(
-          "Rate Limit Exceeded",
-          "You've reached the email sending limit for development instances. Please wait up to 1 hour before trying again, or manually verify your email in the Clerk dashboard."
+          "Code Sent",
+          "A new verification code has been sent to your email. Please check your inbox and spam folder."
         );
       } else {
         Alert.alert(
           "Error",
-          error.errors?.[0]?.message ||
-            "Failed to resend code. Please try again later."
+          result.error || "Failed to resend code. Please try again later."
         );
       }
+    } catch (error) {
+      console.error("Resend error:", error);
+      Alert.alert(
+        "Error",
+        error.message || "Failed to resend code. Please try again later."
+      );
     } finally {
       setIsResending(false);
     }
@@ -91,7 +89,7 @@ export default function VerifyEmailScreen({ onNavigateToSignIn }) {
     }
   };
 
-  if (!isLoaded) {
+  if (!user?.email) {
     return (
       <Container>
         <Text
@@ -100,7 +98,7 @@ export default function VerifyEmailScreen({ onNavigateToSignIn }) {
           color="muted"
           style={{ textAlign: "center" }}
         >
-          Loading...
+          No email found. Please sign up first.
         </Text>
       </Container>
     );
@@ -125,14 +123,16 @@ export default function VerifyEmailScreen({ onNavigateToSignIn }) {
           color="primary"
           style={[styles.instruction, { textAlign: "center" }]}
         >
-          We've sent a verification code to your email address. Please enter the
-          code below to complete your account setup.
-          {"\n\n"}
-          <Text variant="body" size="medium" color="muted">
-            Note: Development instances have limited email sending (2 per hour).
-            If you don't receive the code, check your spam folder or wait before
-            resending.
+          We've sent a verification code to{" "}
+          <Text
+            variant="body"
+            size="large"
+            color="secondary"
+            style={{ fontWeight: "600" }}
+          >
+            {user.email}
           </Text>
+          . Please enter the code below to complete your account setup.
         </Text>
 
         <View style={styles.verificationForm}>
@@ -159,7 +159,7 @@ export default function VerifyEmailScreen({ onNavigateToSignIn }) {
             1. Check your email inbox (and spam folder)
           </Text>
           <Text variant="body" size="medium" color="muted" style={styles.step}>
-            2. Find the verification code (usually 6 digits)
+            2. Find the verification code (6 digits)
           </Text>
           <Text variant="body" size="medium" color="muted" style={styles.step}>
             3. Enter the code above and tap "Verify Code"

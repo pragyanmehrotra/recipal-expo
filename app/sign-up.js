@@ -3,7 +3,11 @@ import { View, StyleSheet, Alert } from "react-native";
 import { Container, Text, Header, Button, Input, Divider } from "../components";
 import { useAuth } from "../hooks/auth";
 
-export default function SignUpScreen({ onNavigateToSignIn, onSignUpSuccess }) {
+export default function SignUpScreen({
+  onNavigateToSignIn,
+  onSignUpSuccess,
+  onVerificationNeeded,
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -30,6 +34,22 @@ export default function SignUpScreen({ onNavigateToSignIn, onSignUpSuccess }) {
 
     if (!result.success) {
       Alert.alert("Error", result.error || "Sign up failed");
+    } else if (result.needsVerification) {
+      // Show success message and navigate to verification
+      Alert.alert(
+        "Account Created!",
+        result.message || "Please check your email for verification code.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              if (onVerificationNeeded) {
+                onVerificationNeeded();
+              }
+            },
+          },
+        ]
+      );
     } else if (onSignUpSuccess) {
       onSignUpSuccess();
     }

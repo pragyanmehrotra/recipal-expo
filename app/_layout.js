@@ -7,6 +7,7 @@ import { View, TouchableOpacity, StyleSheet, Text } from "react-native";
 import { AuthProvider, useAuth } from "../hooks/auth";
 import SignInScreen from "./sign-in";
 import SignUpScreen from "./sign-up";
+import VerifyEmailScreen from "./verify-email";
 
 // Map tab names to icons
 const TAB_ICONS = {
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
 });
 
 function AuthGate({ children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, needsVerification } = useAuth();
   const [showSignUp, setShowSignUp] = useState(false);
 
   if (loading) {
@@ -96,6 +97,7 @@ function AuthGate({ children }) {
       </View>
     );
   }
+
   if (!user) {
     // Show sign-in or sign-up screen based on state
     if (showSignUp) {
@@ -103,6 +105,7 @@ function AuthGate({ children }) {
         <SignUpScreen
           onNavigateToSignIn={() => setShowSignUp(false)}
           onSignUpSuccess={() => setShowSignUp(false)}
+          onVerificationNeeded={() => {}}
         />
       );
     }
@@ -110,9 +113,21 @@ function AuthGate({ children }) {
       <SignInScreen
         onNavigateToSignUp={() => setShowSignUp(true)}
         onSignInSuccess={() => {}}
+        onVerificationNeeded={() => {}}
       />
     );
   }
+
+  // Check if email verification is needed
+  if (needsVerification || !user.email_verified) {
+    return (
+      <VerifyEmailScreen
+        onNavigateToSignIn={() => {}}
+        onVerificationSuccess={() => {}}
+      />
+    );
+  }
+
   return children;
 }
 

@@ -8,68 +8,191 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import {
   Container,
   Header,
   Button,
   Text,
   Card,
-  Divider,
   Input,
+  Divider,
 } from "../components";
 import { useAuth } from "../hooks/auth";
 import { apiClient } from "../api/client";
 
+function ProfileHeader({ name, email, createdAt, onPress }) {
+  return (
+    <TouchableOpacity
+      style={styles.profileHeaderCardButton}
+      activeOpacity={0.85}
+      onPress={onPress}
+    >
+      <View style={styles.profileContent}>
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Text
+              variant="title"
+              size="xxlarge"
+              color="primary"
+              style={styles.avatarText}
+            >
+              {name?.charAt(0).toUpperCase() || email?.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.nameContainer}>
+          <View style={styles.nameRow}>
+            <Text
+              variant="title"
+              size="xxlarge"
+              color="primary"
+              style={styles.name}
+              numberOfLines={1}
+            >
+              {name || email}
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color="#FF6B6B"
+              style={styles.chevronIcon}
+            />
+          </View>
+          <Text variant="body" size="medium" color="muted" style={styles.email}>
+            {email}
+          </Text>
+          {createdAt && (
+            <Text style={styles.memberSince}>
+              Member Since {new Date(createdAt).toLocaleDateString()}
+            </Text>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function DangerZone({ onDelete, loading }) {
+  return (
+    <View style={styles.dangerZoneContainer}>
+      <Text style={styles.dangerZoneLabel}>Danger Zone</Text>
+      <Button
+        title={loading ? "Deleting..." : "Delete Account"}
+        variant="solid"
+        size="large"
+        color="error"
+        style={styles.dangerButton}
+        onPress={onDelete}
+        disabled={loading}
+      />
+    </View>
+  );
+}
+
+function SignOutButton({ onSignOut }) {
+  return (
+    <TouchableOpacity
+      style={styles.signOutContainer}
+      activeOpacity={0.7}
+      onPress={onSignOut}
+    >
+      <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
+      <Text
+        variant="body"
+        size="medium"
+        color="primary"
+        style={styles.signOutText}
+      >
+        Sign Out
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+function AccountSection({
+  onManageSubscriptions,
+  onPaymentHistory,
+  onNotifications,
+}) {
+  return (
+    <Card
+      padding="large"
+      backgroundColor="secondary"
+      style={styles.accountCard}
+    >
+      <Text style={styles.accountSectionTitle}>Account</Text>
+      <View style={styles.accountActionButtons}>
+        <TouchableOpacity
+          style={styles.accountActionButton}
+          activeOpacity={0.7}
+          onPress={onManageSubscriptions}
+        >
+          <Ionicons name="card-outline" size={24} color="#FF6B6B" />
+          <Text style={styles.accountActionText}>Manage Subscriptions</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.accountActionButton}
+          activeOpacity={0.7}
+          onPress={onPaymentHistory}
+        >
+          <Ionicons name="receipt-outline" size={24} color="#FF6B6B" />
+          <Text style={styles.accountActionText}>Payment History</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.accountActionButton}
+          activeOpacity={0.7}
+          onPress={onNotifications}
+        >
+          <Ionicons name="notifications-outline" size={24} color="#FF6B6B" />
+          <Text style={styles.accountActionText}>Notifications</Text>
+        </TouchableOpacity>
+      </View>
+    </Card>
+  );
+}
+
 export default function ProfileScreen() {
   const { user, signOut, updateUser } = useAuth();
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
+  const router = useRouter();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isBuyingPremium, setIsBuyingPremium] = useState(false);
+  const [isCancellingPremium, setIsCancellingPremium] = useState(false);
 
-  // Helper function to truncate long names
-  const truncateName = (name, maxLength = 20) => {
-    if (!name) return "";
-    return name.length > maxLength
-      ? name.substring(0, maxLength) + "..."
-      : name;
+  // Premium stubs
+  const handleBuyPremium = async () => {
+    setIsBuyingPremium(true);
+    setTimeout(() => {
+      Alert.alert("Premium Purchased", "You are now a premium member!");
+      // updateUser({ ...user, premium: true }); // Uncomment when backend ready
+      setIsBuyingPremium(false);
+    }, 1200);
+  };
+  const handleCancelPremium = async () => {
+    setIsCancellingPremium(true);
+    setTimeout(() => {
+      Alert.alert(
+        "Premium Cancelled",
+        "Your premium membership has been cancelled."
+      );
+      // updateUser({ ...user, premium: false }); // Uncomment when backend ready
+      setIsCancellingPremium(false);
+    }, 1200);
   };
 
-  // Get display name with fallback
-  const getDisplayName = () => {
-    const name = user?.name || user?.email || "";
-    return truncateName(name, 25); // Allow slightly more characters for display
-  };
-
-  const handleSignOut = async () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign Out", style: "destructive", onPress: signOut },
-    ]);
-  };
-
-  const handleEditName = () => {
-    setNewName(user?.name || "");
-    setIsEditingName(true);
-  };
-
-  const handleUpdateName = async () => {
-    if (!newName.trim()) {
-      Alert.alert("Error", "Name cannot be empty");
-      return;
-    }
-
-    setIsUpdating(true);
+  // Delete Account
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
     try {
-      const result = await apiClient.put("/api/user/profile", {
-        name: newName.trim(),
-      });
-      updateUser(result.user);
-      Alert.alert("Success", "Name updated successfully!");
-      setIsEditingName(false);
+      await apiClient.delete("/api/user/profile");
+      Alert.alert("Account Deleted", "Your account has been deleted.");
+      await signOut();
     } catch (error) {
-      Alert.alert("Error", error.message || "Failed to update name");
+      Alert.alert("Error", error.message || "Failed to delete account");
     } finally {
-      setIsUpdating(false);
+      setIsDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -95,124 +218,26 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Header Card */}
-        <Card
-          padding="large"
-          backgroundColor="secondary"
-          style={styles.profileHeaderCard}
-        >
-          <View style={styles.profileContent}>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <Text
-                  variant="title"
-                  size="xxlarge"
-                  color="primary"
-                  style={styles.avatarText}
-                >
-                  {getDisplayName().charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.nameContainer}>
-              <View style={styles.nameRow}>
-                <Text
-                  variant="title"
-                  size="xxlarge"
-                  color="primary"
-                  style={styles.name}
-                  numberOfLines={1}
-                >
-                  {getDisplayName()}
-                </Text>
-                <TouchableOpacity
-                  onPress={handleEditName}
-                  style={styles.editButton}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="create-outline" size={26} color="#FF6B6B" />
-                </TouchableOpacity>
-              </View>
-              <Text
-                variant="body"
-                size="medium"
-                color="muted"
-                style={styles.email}
-              >
-                {user?.email}
-              </Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* Account Info Section */}
-        <Card
-          padding="large"
-          backgroundColor="secondary"
-          style={styles.infoCard}
-        >
+        <ProfileHeader
+          name={user?.name}
+          email={user?.email}
+          createdAt={user?.created_at}
+          onPress={() => router.push("/edit-profile")}
+        />
+        <AccountSection
+          onManageSubscriptions={() => {}}
+          onPaymentHistory={() => {}}
+          onNotifications={() => {}}
+          cardStyle={styles.cardUnified}
+        />
+        <Card padding="large" style={[styles.actionsCard, styles.cardUnified]}>
           <Text
             variant="title"
             size="large"
             color="primary"
             style={styles.sectionTitle}
           >
-            Account Information
-          </Text>
-          <View style={styles.infoRow}>
-            <View style={styles.infoItem}>
-              <Text
-                variant="body"
-                size="small"
-                color="muted"
-                style={styles.infoLabel}
-              >
-                User ID
-              </Text>
-              <Text
-                variant="body"
-                size="medium"
-                color="primary"
-                style={styles.infoValue}
-              >
-                {user?.id}
-              </Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text
-                variant="body"
-                size="small"
-                color="muted"
-                style={styles.infoLabel}
-              >
-                Member Since
-              </Text>
-              <Text
-                variant="body"
-                size="medium"
-                color="primary"
-                style={styles.infoValue}
-              >
-                {new Date(user?.created_at).toLocaleDateString()}
-              </Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* Actions Section */}
-        <Card
-          padding="large"
-          backgroundColor="secondary"
-          style={styles.actionsCard}
-        >
-          <Text
-            variant="title"
-            size="large"
-            color="primary"
-            style={styles.sectionTitle}
-          >
-            Account Actions
+            Help & Support
           </Text>
           <View style={styles.actionButtons}>
             <TouchableOpacity
@@ -220,33 +245,17 @@ export default function ProfileScreen() {
               activeOpacity={0.7}
               onPress={() => {}}
             >
-              <Ionicons name="settings-outline" size={24} color="#FF6B6B" />
-              <Text
-                variant="body"
-                size="medium"
-                color="primary"
-                style={styles.actionText}
-              >
-                Settings
-              </Text>
+              <Ionicons name="help-buoy-outline" size={24} color="#FF6B6B" />
+              <Text style={styles.actionText}>Frequently Asked Questions</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.actionButton}
               activeOpacity={0.7}
               onPress={() => {}}
             >
-              <Ionicons name="help-circle-outline" size={24} color="#FF6B6B" />
-              <Text
-                variant="body"
-                size="medium"
-                color="primary"
-                style={styles.actionText}
-              >
-                Help & Support
-              </Text>
+              <Ionicons name="mail-outline" size={24} color="#FF6B6B" />
+              <Text style={styles.actionText}>Contact Us</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.actionButton}
               activeOpacity={0.7}
@@ -257,98 +266,24 @@ export default function ProfileScreen() {
                 size={24}
                 color="#FF6B6B"
               />
-              <Text
-                variant="body"
-                size="medium"
-                color="primary"
-                style={styles.actionText}
-              >
-                Privacy Policy
-              </Text>
+              <Text style={styles.actionText}>Terms and Conditions</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              activeOpacity={0.7}
+              onPress={() => {}}
+            >
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={24}
+                color="#FF6B6B"
+              />
+              <Text style={styles.actionText}>Privacy Policy</Text>
             </TouchableOpacity>
           </View>
         </Card>
-
-        {/* Sign Out Button */}
-        <TouchableOpacity
-          style={styles.signOutContainer}
-          activeOpacity={0.7}
-          onPress={handleSignOut}
-        >
-          <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
-          <Text
-            variant="body"
-            size="medium"
-            color="primary"
-            style={styles.signOutText}
-          >
-            Sign Out
-          </Text>
-        </TouchableOpacity>
+        <SignOutButton onSignOut={signOut} />
       </ScrollView>
-
-      {/* Name Edit Modal */}
-      <Modal
-        visible={isEditingName}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setIsEditingName(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Ionicons
-                name="person-circle-outline"
-                size={32}
-                color="#FF6B6B"
-              />
-              <Text
-                variant="title"
-                size="large"
-                color="primary"
-                style={styles.modalTitle}
-              >
-                Edit Your Name
-              </Text>
-            </View>
-            <Input
-              placeholder="Enter your full name"
-              value={newName}
-              onChangeText={setNewName}
-              autoCapitalize="words"
-              autoComplete="name"
-              maxLength={30}
-              style={styles.nameInput}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setIsEditingName(false)}
-                activeOpacity={0.7}
-              >
-                <Text variant="body" size="medium" color="muted">
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={handleUpdateName}
-                disabled={isUpdating}
-                activeOpacity={0.7}
-              >
-                <Text
-                  variant="body"
-                  size="medium"
-                  color="primary"
-                  style={{ fontWeight: "600" }}
-                >
-                  {isUpdating ? "Updating..." : "Save Changes"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </Container>
   );
 }
@@ -361,8 +296,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 40,
   },
-
-  // Profile Header Card
   profileHeaderCard: {
     marginBottom: 20,
   },
@@ -402,6 +335,7 @@ const styles = StyleSheet.create({
   },
   name: {
     textAlign: "left",
+    color: "#fff",
   },
   editButton: {
     marginLeft: 8,
@@ -409,14 +343,19 @@ const styles = StyleSheet.create({
   },
   email: {
     textAlign: "left",
+    color: "#ccc",
   },
-
-  // Info Card
+  memberSince: {
+    color: "#aaa",
+    fontSize: 13,
+    marginTop: 2,
+  },
   infoCard: {
     marginBottom: 20,
   },
   sectionTitle: {
     marginBottom: 16,
+    color: "#fff",
   },
   infoRow: {
     flexDirection: "row",
@@ -427,14 +366,75 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     marginBottom: 4,
+    color: "#aaa",
   },
   infoValue: {
     fontWeight: "500",
+    color: "#fff",
   },
-
-  // Actions Card
+  dangerZoneContainer: {
+    marginTop: 32,
+    alignItems: "center",
+    paddingBottom: 32,
+    width: "100%",
+  },
+  dangerZoneLabel: {
+    color: "#FF6B6B",
+    fontWeight: "bold",
+    marginBottom: 12,
+    fontSize: 18,
+    letterSpacing: 1,
+    opacity: 0.85,
+    alignSelf: "flex-start",
+    marginLeft: 4,
+  },
+  dangerButton: {
+    backgroundColor: "#FF6B6B",
+    borderRadius: 10,
+    width: "100%",
+    paddingVertical: 16,
+    marginTop: 4,
+    alignSelf: "center",
+    shadowColor: "#FF6B6B",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  accountCard: {
+    marginBottom: 20,
+    borderRadius: 12,
+    backgroundColor: "#23232b",
+  },
+  accountSectionTitle: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 18,
+    marginBottom: 16,
+    letterSpacing: 0.5,
+  },
+  accountActionButtons: {
+    gap: 16,
+  },
+  accountActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 107, 107, 0.08)",
+    marginBottom: 0,
+  },
+  accountActionText: {
+    marginLeft: 12,
+    fontWeight: "500",
+    color: "#fff",
+    fontSize: 16,
+  },
   actionsCard: {
     marginBottom: 20,
+    borderRadius: 12,
+    backgroundColor: "#23232b",
   },
   actionButtons: {
     gap: 16,
@@ -450,9 +450,8 @@ const styles = StyleSheet.create({
   actionText: {
     marginLeft: 12,
     fontWeight: "500",
+    color: "#fff",
   },
-
-  // Sign Out
   signOutContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -473,9 +472,8 @@ const styles = StyleSheet.create({
   signOutText: {
     marginLeft: 8,
     fontWeight: "600",
+    color: "#fff",
   },
-
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -524,5 +522,112 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: "#FF6B6B",
+  },
+  deleteButton: {
+    backgroundColor: "#FF6B6B",
+    borderRadius: 10,
+    width: "100%",
+    paddingVertical: 16,
+    marginTop: 4,
+    alignSelf: "center",
+    shadowColor: "#FF6B6B",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  deleteButtonNoGlow: {
+    borderColor: "#FF6B6B",
+    borderWidth: 1.5,
+    backgroundColor: "transparent",
+    borderRadius: 10,
+    width: "100%",
+    paddingVertical: 16,
+    marginTop: 16,
+    alignSelf: "center",
+  },
+  profileHeaderCardButton: {
+    backgroundColor: "#23232b",
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  chevronIcon: {
+    marginLeft: 8,
+  },
+  profileModalContent: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 16,
+    padding: 24,
+    width: "90%",
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+    alignItems: "center",
+  },
+  profileModalTitle: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 22,
+    marginBottom: 18,
+  },
+  avatarEditContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+    position: "relative",
+  },
+  avatarLarge: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#FF6B6B",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 0,
+  },
+  avatarLargeText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 36,
+  },
+  avatarEditIcon: {
+    position: "absolute",
+    right: -8,
+    bottom: 0,
+    backgroundColor: "#23232b",
+    borderRadius: 16,
+    padding: 4,
+  },
+  avatarEditLabel: {
+    color: "#aaa",
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  profileInput: {
+    width: "100%",
+    marginBottom: 12,
+  },
+  emailEditLabel: {
+    color: "#aaa",
+    fontSize: 12,
+    marginBottom: 12,
+    alignSelf: "flex-start",
+  },
+  cardUnified: {
+    backgroundColor: "#23232b",
+    borderRadius: 12,
+  },
+  sectionCard: {
+    marginBottom: 20,
+    backgroundColor: "#23232b",
+    borderRadius: 12,
   },
 });

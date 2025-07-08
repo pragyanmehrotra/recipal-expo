@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import EditProfileScreen from "../app/edit-profile";
 
 // Navigation helper for auth screens
 export function useAuthNavigation() {

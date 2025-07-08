@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [jwt, setJwt] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   useEffect(() => {
     // Load JWT and user from SecureStore on mount
@@ -34,10 +35,21 @@ export function AuthProvider({ children }) {
         }
       );
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Sign in failed");
+      if (!response.ok) {
+        if (response.status === 403 && data.needsVerification) {
+          setNeedsVerification(true);
+          return {
+            success: false,
+            error: data.message,
+            needsVerification: true,
+          };
+        }
+        throw new Error(data.error || "Sign in failed");
+      }
       await SecureStore.setItemAsync("jwt", data.token);
       setJwt(data.token);
       setUser(data.user);
+      setNeedsVerification(false);
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -59,10 +71,13 @@ export function AuthProvider({ children }) {
       );
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Sign up failed");
+
+      // Store temporary token for verification
       await SecureStore.setItemAsync("jwt", data.token);
       setJwt(data.token);
       setUser(data.user);
-      return { success: true };
+      setNeedsVerification(true);
+      return { success: true, needsVerification: true, message: data.message };
     } catch (error) {
       return { success: false, error: error.message };
     } finally {
@@ -70,10 +85,57 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const verifyEmail = async (email, code) => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/auth/verify-email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Verification failed");
+
+      // Store permanent token
+      await SecureStore.setItemAsync("jwt", data.token);
+      setJwt(data.token);
+      setUser(data.user);
+      setNeedsVerification(false);
+      return { success: true, message: data.message };
+    } catch (error) {
+      return { success: false, error: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resendVerification = async (email) => {
+    try {
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/auth/resend-verification`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Failed to resend verification");
+      return { success: true, message: data.message };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
   const signOut = async () => {
     await SecureStore.deleteItemAsync("jwt");
     setJwt(null);
     setUser(null);
+    setNeedsVerification(false);
   };
 
   const updateUser = (updatedUser) => {
@@ -105,7 +167,18 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, jwt, loading, signIn, signUp, signOut, updateUser }}
+      value={{
+        user,
+        jwt,
+        loading,
+        needsVerification,
+        signIn,
+        signUp,
+        signOut,
+        updateUser,
+        verifyEmail,
+        resendVerification,
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -113,5 +186,9 @@ export function AuthProvider({ children }) {
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }
