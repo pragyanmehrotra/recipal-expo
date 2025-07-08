@@ -36,6 +36,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: "#ffffff",
     fontSize: 16,
+    fontFamily: "System",
+    letterSpacing: 0,
   },
 });
 

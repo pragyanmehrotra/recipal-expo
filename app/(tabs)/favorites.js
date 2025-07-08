@@ -1,5 +1,5 @@
 import React from "react";
-import { Container, Header, Placeholder } from "../components";
+import { Container, Header, Placeholder } from "../../components";
 
 export default function FavoritesScreen() {
   return (

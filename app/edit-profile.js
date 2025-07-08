@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Input, Button, Card, Text } from "../components";
+import DeleteAccountModal from "../components/DeleteAccountModal";
 import { useAuth } from "../hooks/auth";
 import { apiClient } from "../api/client";
 
@@ -18,6 +19,7 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [editField, setEditField] = useState(null); // 'name' or 'email'
   const [editValue, setEditValue] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -55,12 +57,13 @@ export default function EditProfileScreen() {
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
+    setDeleteError("");
     try {
       await apiClient.delete("/api/user/profile");
       Alert.alert("Account Deleted", "Your account has been deleted.");
       await signOut();
     } catch (error) {
-      Alert.alert("Error", error.message || "Failed to delete account");
+      setDeleteError(error.message || "Failed to delete account");
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
@@ -71,7 +74,7 @@ export default function EditProfileScreen() {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.push("/profile")}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color="#FF6B6B" />
@@ -128,7 +131,7 @@ export default function EditProfileScreen() {
         <Card style={[styles.cardUnified, styles.dangerZoneCard]}>
           <Text style={styles.dangerZoneLabel}>Danger Zone</Text>
           <Button
-            title={isDeleting ? "Deleting..." : "Delete Account"}
+            title="Delete Account"
             variant="outline"
             size="large"
             color="error"
@@ -184,41 +187,13 @@ export default function EditProfileScreen() {
           </View>
         </View>
       </Modal>
-      {/* Delete Account Confirmation Modal */}
-      {showDeleteModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Ionicons name="warning-outline" size={32} color="#FF6B6B" />
-              <Text style={styles.modalTitle}>Delete Account</Text>
-            </View>
-            <Text style={styles.modalText}>
-              Are you sure you want to delete your account? This action cannot
-              be undone.
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowDeleteModal(false)}
-                activeOpacity={0.7}
-                disabled={isDeleting}
-              >
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.deleteModalButton]}
-                onPress={handleDeleteAccount}
-                disabled={isDeleting}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.deleteText}>
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
+      <DeleteAccountModal
+        visible={showDeleteModal}
+        onCancel={() => setShowDeleteModal(false)}
+        onDelete={handleDeleteAccount}
+        loading={isDeleting}
+        error={deleteError}
+      />
     </View>
   );
 }
@@ -310,7 +285,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 12,
     fontSize: 18,
-    letterSpacing: 1,
     opacity: 0.85,
     alignSelf: "flex-start",
     marginLeft: 4,

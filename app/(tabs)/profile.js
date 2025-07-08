@@ -17,9 +17,9 @@ import {
   Card,
   Input,
   Divider,
-} from "../components";
-import { useAuth } from "../hooks/auth";
-import { apiClient } from "../api/client";
+} from "../../components";
+import { useAuth } from "../../hooks/auth";
+import { apiClient } from "../../api/client";
 
 function ProfileHeader({ name, email, createdAt, onPress }) {
   return (
@@ -383,7 +383,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 12,
     fontSize: 18,
-    letterSpacing: 1,
     opacity: 0.85,
     alignSelf: "flex-start",
     marginLeft: 4,

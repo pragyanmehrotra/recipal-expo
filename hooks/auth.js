@@ -8,6 +8,8 @@ export function AuthProvider({ children }) {
   const [jwt, setJwt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [needsVerification, setNeedsVerification] = useState(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] =
+    useState(null);
 
   useEffect(() => {
     // Load JWT and user from SecureStore on mount
@@ -38,6 +40,7 @@ export function AuthProvider({ children }) {
       if (!response.ok) {
         if (response.status === 403 && data.needsVerification) {
           setNeedsVerification(true);
+          setPendingVerificationEmail(email);
           return {
             success: false,
             error: data.message,
@@ -50,6 +53,7 @@ export function AuthProvider({ children }) {
       setJwt(data.token);
       setUser(data.user);
       setNeedsVerification(false);
+      setPendingVerificationEmail(null);
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -136,10 +140,19 @@ export function AuthProvider({ children }) {
     setJwt(null);
     setUser(null);
     setNeedsVerification(false);
+    setPendingVerificationEmail(null);
   };
 
   const updateUser = (updatedUser) => {
     setUser(updatedUser);
+  };
+
+  const resetAuth = async () => {
+    await SecureStore.deleteItemAsync("jwt");
+    setJwt(null);
+    setUser(null);
+    setNeedsVerification(false);
+    setPendingVerificationEmail(null);
   };
 
   const fetchUserProfile = async (token) => {
@@ -165,6 +178,12 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Helper to manually trigger email verification flow
+  const triggerEmailVerification = (email) => {
+    setNeedsVerification(true);
+    setPendingVerificationEmail(email);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -172,12 +191,15 @@ export function AuthProvider({ children }) {
         jwt,
         loading,
         needsVerification,
+        pendingVerificationEmail,
         signIn,
         signUp,
         signOut,
         updateUser,
         verifyEmail,
         resendVerification,
+        resetAuth,
+        triggerEmailVerification,
       }}
     >
       {children}

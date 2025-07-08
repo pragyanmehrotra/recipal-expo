@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Alert } from "react-native";
+import { View, StyleSheet, Alert, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { Container, Text, Header, Button, Input, Divider } from "../components";
 import { useAuth } from "../hooks/auth";
 
@@ -12,6 +13,7 @@ export default function SignInScreen({
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
+  const router = useRouter();
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -23,30 +25,17 @@ export default function SignInScreen({
     const result = await signIn(email, password);
 
     if (!result.success) {
-      if (result.needsVerification) {
-        Alert.alert(
-          "Email Not Verified",
-          result.error || "Please verify your email before signing in.",
-          [
-            {
-              text: "Verify Email",
-              onPress: () => {
-                if (onVerificationNeeded) {
-                  onVerificationNeeded();
-                }
-              },
-            },
-            {
-              text: "Cancel",
-              style: "cancel",
-            },
-          ]
-        );
-      } else {
-        Alert.alert("Error", result.error || "Sign in failed");
+      Alert.alert("Sign In Failed", result.error || "Sign in failed.", [
+        {
+          text: "OK",
+          style: "default",
+        },
+      ]);
+    } else {
+      router.replace("/");
+      if (onSignInSuccess) {
+        onSignInSuccess();
       }
-    } else if (onSignInSuccess) {
-      onSignInSuccess();
     }
 
     setIsLoading(false);
@@ -60,8 +49,8 @@ export default function SignInScreen({
         titleSize="xxlarge"
         subtitleSize="medium"
         textAlign="center"
-        marginTop={40}
-        marginBottom={40}
+        marginTop={36}
+        marginBottom={28}
       />
       <View style={styles.form}>
         <Input
@@ -71,6 +60,7 @@ export default function SignInScreen({
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
+          style={styles.input}
         />
         <Input
           placeholder="Password"
@@ -78,6 +68,7 @@ export default function SignInScreen({
           onChangeText={setPassword}
           secureTextEntry={true}
           autoComplete="password"
+          style={[styles.input, styles.passwordInput]}
         />
         <Button
           title={isLoading ? "Signing In..." : "Sign In"}
@@ -85,8 +76,16 @@ export default function SignInScreen({
           disabled={isLoading}
           style={styles.signInButton}
         />
+        <TouchableOpacity
+          onPress={() => router.push("/reset-password")}
+          style={styles.forgotPasswordLink}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+        </TouchableOpacity>
       </View>
-      <Divider margin="large" />
+      <Divider margin="large" style={styles.divider} />
+      <View style={styles.footerSpacer} />
       <View style={styles.footer}>
         <Text
           variant="body"
@@ -109,8 +108,32 @@ export default function SignInScreen({
 }
 
 const styles = StyleSheet.create({
-  form: { marginBottom: 20 },
-  signInButton: { marginTop: 20 },
+  form: { marginBottom: 0 },
+  input: {
+    marginBottom: 16,
+  },
+  signInButton: { marginTop: 20, marginBottom: 12 },
   footer: { alignItems: "center" },
   signUpButton: { marginTop: 10 },
+  forgotPasswordLink: {
+    marginTop: 12,
+    marginBottom: 20,
+    alignSelf: "center",
+  },
+  forgotPasswordText: {
+    color: "#FF6B6B",
+    fontWeight: "500",
+    fontSize: 15,
+    letterSpacing: 0.1,
+  },
+  passwordInput: {
+    marginTop: 0,
+  },
+  divider: {
+    marginTop: 20,
+    marginBottom: 0,
+  },
+  footerSpacer: {
+    height: 32,
+  },
 });

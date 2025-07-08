@@ -2,15 +2,19 @@ import React, { useState } from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import { Container, Text, Header, Button, Input, Divider } from "../components";
 import { useAuth } from "../hooks/auth";
+import { useAuthNavigation } from "../navigation";
 
 export default function VerifyEmailScreen({
+  email,
   onNavigateToSignIn,
   onVerificationSuccess,
 }) {
   const { user, verifyEmail, resendVerification } = useAuth();
+  const { goToSignIn } = useAuthNavigation();
   const [isResending, setIsResending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
+  const emailToVerify = user?.email || email;
 
   const handleVerifyCode = async () => {
     if (!verificationCode.trim()) {
@@ -21,7 +25,7 @@ export default function VerifyEmailScreen({
     setIsVerifying(true);
 
     try {
-      const result = await verifyEmail(user?.email, verificationCode);
+      const result = await verifyEmail(emailToVerify, verificationCode);
 
       if (result.success) {
         Alert.alert(
@@ -59,7 +63,7 @@ export default function VerifyEmailScreen({
     setIsResending(true);
 
     try {
-      const result = await resendVerification(user?.email);
+      const result = await resendVerification(emailToVerify);
 
       if (result.success) {
         Alert.alert(
@@ -84,12 +88,11 @@ export default function VerifyEmailScreen({
   };
 
   const handleBackToSignIn = () => {
-    if (onNavigateToSignIn) {
-      onNavigateToSignIn();
-    }
+    if (onNavigateToSignIn) onNavigateToSignIn();
+    goToSignIn();
   };
 
-  if (!user?.email) {
+  if (!emailToVerify) {
     return (
       <Container>
         <Text
@@ -130,14 +133,14 @@ export default function VerifyEmailScreen({
             color="secondary"
             style={{ fontWeight: "600" }}
           >
-            {user.email}
+            {emailToVerify}
           </Text>
           . Please enter the code below to complete your account setup.
         </Text>
 
         <View style={styles.verificationForm}>
           <Input
-            placeholder="Enter verification code (e.g., 123456)"
+            placeholder="Enter Verification Code"
             value={verificationCode}
             onChangeText={setVerificationCode}
             keyboardType="number-pad"
@@ -214,7 +217,7 @@ const styles = StyleSheet.create({
   codeInput: {
     textAlign: "center",
     fontSize: 18,
-    letterSpacing: 2,
+
     marginBottom: 20,
   },
   verifyButton: {
