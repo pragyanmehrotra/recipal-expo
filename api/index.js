@@ -57,8 +57,15 @@ export function useRecipeApi() {
   }
 
   return {
-    searchRecipes: (query, options = {}) =>
-      api.get(`${API_CONFIG.endpoints.recipes}/search?query=${query}`),
+    searchRecipes: (query, options = {}) => {
+      // Support pagination for search queries, including offset=0
+      let url = `${
+        API_CONFIG.endpoints.recipes
+      }/search?query=${encodeURIComponent(query)}`;
+      if (options.hasOwnProperty("number")) url += `&number=${options.number}`;
+      if (options.hasOwnProperty("offset")) url += `&offset=${options.offset}`;
+      return api.get(url);
+    },
 
     getRecipe: (id) => api.get(`${API_CONFIG.endpoints.recipes}/${id}`),
 

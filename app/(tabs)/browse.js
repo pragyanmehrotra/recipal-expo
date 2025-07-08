@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   FlatList,
@@ -18,40 +18,37 @@ export default function BrowseRecipesScreen() {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(0);
+  // Use a ref for offset to avoid async state issues
+  const offsetRef = useRef(0);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(true); // Only for search
   const recipeApi = useRecipeApi();
 
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
-    setPage(0);
     setRecipes([]);
-    setHasMore(true);
     if (search.trim()) {
+      offsetRef.current = 0;
+      setHasMore(true);
       fetchRecipes(search.trim(), 0, true);
     } else {
-      fetchRandomRecipes(0, true);
+      fetchRandomRecipes(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const fetchRandomRecipes = async (pageNum = 0, replace = false) => {
+  const fetchRandomRecipes = async (replace = false) => {
     if (loading || isFetchingMore) return;
-    if (!hasMore && !replace) return;
     if (replace) setLoading(true);
     else setIsFetchingMore(true);
     setError(null);
     try {
       const data = await recipeApi.searchRecipes("", {
         number: PAGE_SIZE,
-        offset: pageNum * PAGE_SIZE,
       });
       const newRecipes = data.recipes || data.results || [];
       setRecipes(replace ? newRecipes : [...recipes, ...newRecipes]);
-      setHasMore(newRecipes.length === PAGE_SIZE);
-      setPage(pageNum + 1);
     } catch (e) {
       setError("Failed to load recipes");
       if (replace) setRecipes([]);
@@ -61,7 +58,7 @@ export default function BrowseRecipesScreen() {
     }
   };
 
-  const fetchRecipes = async (query, pageNum = 0, replace = false) => {
+  const fetchRecipes = async (query, offset = 0, replace = false) => {
     if (loading || isFetchingMore) return;
     if (!hasMore && !replace) return;
     if (replace) setLoading(true);
@@ -70,12 +67,11 @@ export default function BrowseRecipesScreen() {
     try {
       const data = await recipeApi.searchRecipes(query, {
         number: PAGE_SIZE,
-        offset: pageNum * PAGE_SIZE,
+        offset,
       });
       const newRecipes = data.results || data.recipes || [];
       setRecipes(replace ? newRecipes : [...recipes, ...newRecipes]);
       setHasMore(newRecipes.length === PAGE_SIZE);
-      setPage(pageNum + 1);
     } catch (e) {
       setError("No recipes found");
       if (replace) setRecipes([]);
@@ -87,20 +83,21 @@ export default function BrowseRecipesScreen() {
 
   const handleLoadMore = () => {
     if (search.trim()) {
-      fetchRecipes(search.trim(), page, false);
+      offsetRef.current += PAGE_SIZE;
+      fetchRecipes(search.trim(), offsetRef.current, false);
     } else {
-      fetchRandomRecipes(page, false);
+      fetchRandomRecipes(false);
     }
   };
 
   const handleSearch = () => {
-    setPage(0);
+    offsetRef.current = 0;
     setRecipes([]);
     setHasMore(true);
     if (search.trim()) {
       fetchRecipes(search.trim(), 0, true);
     } else {
-      fetchRandomRecipes(0, true);
+      fetchRandomRecipes(true);
     }
   };
 
@@ -108,8 +105,8 @@ export default function BrowseRecipesScreen() {
     <RecipeCard
       image={item.image}
       title={item.title}
-      cookTime={item.readyInMinutes || item.ready_in_minutes}
-      servings={item.servings}
+      cookTime={item.readyInMinutes || item.ready_in_minutes || "-"}
+      servings={item.servings || "-"}
       isFavorite={item.isFavorite}
       onPress={() => {}}
       onToggleFavorite={() => {}}
@@ -149,7 +146,9 @@ export default function BrowseRecipesScreen() {
           ListEmptyComponent={
             <Header title="No recipes found" titleSize="large" />
           }
-          onEndReached={hasMore ? handleLoadMore : null}
+          onEndReached={
+            search.trim() ? (hasMore ? handleLoadMore : null) : handleLoadMore
+          }
           onEndReachedThreshold={0.5}
           ListFooterComponent={
             isFetchingMore ? (
