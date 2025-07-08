@@ -9,9 +9,36 @@ import {
 import { Container, Header } from "../../components";
 import SearchBar from "../../components/SearchBar";
 import RecipeCard from "../../components/RecipeCard";
-import { useRecipeApi } from "../../api/index";
+import { useRecipeApi, useFavoriteApi } from "../../api/index";
 
 const numColumns = 2;
+
+// Helper to get recipe id (always local DB id now)
+function getRecipeId(recipe) {
+  return recipe.id;
+}
+
+// Helper to parse ISO 8601 durations like PT35M, PT1H20M, PT45S
+function parseIsoDuration(iso) {
+  if (!iso || typeof iso !== "string" || !iso.startsWith("P")) return iso;
+  // Example: PT1H20M, PT35M, PT45S
+  const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return iso;
+  const [, h, m, s] = match.map(Number);
+  let out = [];
+  if (h) out.push(`${h} hr`);
+  if (m) out.push(`${m} min`);
+  if (s && !h && !m) out.push(`${s} sec`);
+  return out.length ? out.join(" ") : iso;
+}
+
+// Helper to extract the first number from servings string
+function extractServings(servingsField) {
+  if (!servingsField || typeof servingsField !== "string") return null;
+  const match = servingsField.match(/\d+/);
+  if (match) return parseInt(match[0], 10);
+  return null;
+}
 
 export default function BrowseRecipesScreen() {
   const [search, setSearch] = useState("");
@@ -23,10 +50,28 @@ export default function BrowseRecipesScreen() {
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true); // Only for search
   const recipeApi = useRecipeApi();
+  const favoriteApi = useFavoriteApi();
+  const [favoriteIds, setFavoriteIds] = useState(new Set());
 
   const PAGE_SIZE = 10;
 
+  // Load favorites on mount
   useEffect(() => {
+    (async () => {
+      try {
+        const data = await favoriteApi.listFavorites();
+        // data.favorites is now an array of recipe objects
+        setFavoriteIds(new Set(data.favorites.map((r) => r.id)));
+      } catch (e) {
+        // ignore
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Prevent fetch loop if already loading
+    if (loading || isFetchingMore) return;
     setRecipes([]);
     if (search.trim()) {
       offsetRef.current = 0;
@@ -51,6 +96,7 @@ export default function BrowseRecipesScreen() {
       setRecipes(replace ? newRecipes : [...recipes, ...newRecipes]);
     } catch (e) {
       setError("Failed to load recipes");
+      setHasMore(false); // Prevent infinite scroll on error
       if (replace) setRecipes([]);
     } finally {
       if (replace) setLoading(false);
@@ -74,6 +120,7 @@ export default function BrowseRecipesScreen() {
       setHasMore(newRecipes.length === PAGE_SIZE);
     } catch (e) {
       setError("No recipes found");
+      setHasMore(false); // Prevent infinite scroll on error
       if (replace) setRecipes([]);
     } finally {
       if (replace) setLoading(false);
@@ -101,17 +148,56 @@ export default function BrowseRecipesScreen() {
     }
   };
 
-  const renderRecipe = ({ item }) => (
-    <RecipeCard
-      image={item.image}
-      title={item.title}
-      cookTime={item.readyInMinutes || item.ready_in_minutes || "-"}
-      servings={item.servings || "-"}
-      isFavorite={item.isFavorite}
-      onPress={() => {}}
-      onToggleFavorite={() => {}}
-    />
-  );
+  const renderRecipe = ({ item }) => {
+    const id = getRecipeId(item);
+    const isFavorite = favoriteIds.has(id);
+    const handleToggleFavorite = async () => {
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      try {
+        if (isFavorite) {
+          await favoriteApi.removeFavorite(id);
+        } else {
+          await favoriteApi.addFavorite(id);
+        }
+      } catch (e) {
+        setFavoriteIds((prev) => {
+          const next = new Set(prev);
+          if (isFavorite) next.add(id);
+          else next.delete(id);
+          return next;
+        });
+      }
+    };
+    return (
+      <RecipeCard
+        image={item.image}
+        title={item.title || item.name || item.data?.name || "-"}
+        cookTime={parseIsoDuration(
+          item.cookTime ||
+            item.cook_time ||
+            item.readyInMinutes ||
+            item.ready_in_minutes ||
+            item.data?.cookTime ||
+            item.data?.cook_time ||
+            "-"
+        )}
+        servings={(() => {
+          const raw =
+            item.servings || item.recipe_yield || item.data?.recipeYield;
+          const s = extractServings(raw);
+          return s ? s : "-";
+        })()}
+        isFavorite={isFavorite}
+        onPress={() => {}}
+        onToggleFavorite={handleToggleFavorite}
+      />
+    );
+  };
 
   return (
     <Container>

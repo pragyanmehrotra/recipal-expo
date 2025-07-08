@@ -5,6 +5,10 @@ import { Ionicons } from "@expo/vector-icons";
 
 const placeholderImage = require("../assets/icon.png");
 
+function isValidImageUrl(url) {
+  return typeof url === "string" && /^https?:\/\//.test(url);
+}
+
 export default function RecipeCard({
   image,
   title,
@@ -21,7 +25,7 @@ export default function RecipeCard({
       activeOpacity={0.85}
     >
       <Image
-        source={image ? { uri: image } : placeholderImage}
+        source={isValidImageUrl(image) ? { uri: image } : placeholderImage}
         style={styles.image}
         resizeMode="cover"
       />
@@ -33,7 +37,7 @@ export default function RecipeCard({
         <View style={styles.infoRow}>
           <View style={styles.infoItem}>
             <Ionicons name="time-outline" size={16} color="#FF6B6B" />
-            <Text style={styles.infoText}>{cookTime} min</Text>
+            <Text style={styles.infoText}>{cookTime}</Text>
           </View>
           <View style={styles.infoItem}>
             <Ionicons name="people-outline" size={16} color="#4ECDC4" />

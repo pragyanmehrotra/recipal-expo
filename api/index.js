@@ -127,3 +127,16 @@ export function useGroceryListApi() {
       api.delete(`${API_CONFIG.endpoints.groceryLists}/${id}`),
   };
 }
+
+// Favorite API functions
+export function useFavoriteApi() {
+  const api = useApiClient();
+  if (!api) return null;
+  return {
+    listFavorites: () => api.get(API_CONFIG.endpoints.favorites),
+    addFavorite: (recipe_id) =>
+      api.post(API_CONFIG.endpoints.favorites, { recipe_id }),
+    removeFavorite: (recipe_id) =>
+      api.delete(`${API_CONFIG.endpoints.favorites}/${recipe_id}`),
+  };
+}
