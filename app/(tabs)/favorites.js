@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { FlatList, ActivityIndicator, View } from "react-native";
+import { FlatList, ActivityIndicator, View, Linking } from "react-native";
 import { Container, Header } from "../../components";
 import RecipeCard from "../../components/RecipeCard";
 import { useFavoriteApi } from "../../api/index";
+import { useRouter } from "expo-router";
 
 // Helper to extract the first number from servings string
 function extractServings(servingsField) {
@@ -31,6 +32,7 @@ export default function FavoritesScreen() {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState({});
+  const router = useRouter();
 
   useEffect(() => {
     (async () => {
@@ -97,7 +99,7 @@ export default function FavoritesScreen() {
                 return s ? s : "-";
               })()}
               isFavorite={true}
-              onPress={() => {}}
+              onPress={() => (item.url ? Linking.openURL(item.url) : null)}
               onToggleFavorite={() => handleToggleFavorite(item.id)}
               disabled={removing[item.id]}
             />

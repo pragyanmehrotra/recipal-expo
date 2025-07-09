@@ -5,11 +5,13 @@ import {
   StyleSheet,
   ActivityIndicator,
   Dimensions,
+  Linking,
 } from "react-native";
 import { Container, Header } from "../../components";
 import SearchBar from "../../components/SearchBar";
 import RecipeCard from "../../components/RecipeCard";
 import { useRecipeApi, useFavoriteApi } from "../../api/index";
+import { useRouter } from "expo-router";
 
 const numColumns = 2;
 
@@ -52,6 +54,7 @@ export default function BrowseRecipesScreen() {
   const recipeApi = useRecipeApi();
   const favoriteApi = useFavoriteApi();
   const [favoriteIds, setFavoriteIds] = useState(new Set());
+  const router = useRouter();
 
   const PAGE_SIZE = 10;
 
@@ -193,7 +196,7 @@ export default function BrowseRecipesScreen() {
           return s ? s : "-";
         })()}
         isFavorite={isFavorite}
-        onPress={() => {}}
+        onPress={() => (item.url ? Linking.openURL(item.url) : null)}
         onToggleFavorite={handleToggleFavorite}
       />
     );

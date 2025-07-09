@@ -20,7 +20,9 @@ export default function RootLayout() {
           screenOptions={{
             headerShown: false,
           }}
-        />
+        >
+          <Stack.Screen name="main/RecipeDetails" />
+        </Stack>
       </SafeAreaView>
     </AuthProvider>
   );

@@ -6,12 +6,15 @@ import {
   FlatList,
   ActivityIndicator,
   Image,
+  TouchableOpacity,
+  Linking,
 } from "react-native";
 import { Container, Button, Text, Input, Divider } from "../../components";
 import { Ionicons } from "@expo/vector-icons";
 import RecipeCard from "../../components/RecipeCard";
 import { useRecipeApi, useFavoriteApi, useMealPlanApi } from "../../api/index";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 const placeholderImage = require("../../assets/icon.png");
 
 function isValidImageUrl(url) {
@@ -93,6 +96,7 @@ export default function MealPlansScreen() {
   const recipeApi = useRecipeApi();
   const favoriteApi = useFavoriteApi();
   const mealPlanApi = useMealPlanApi();
+  const router = useRouter();
 
   // Pagination state for search results
   const [searchOffset, setSearchOffset] = useState(0);
@@ -466,7 +470,18 @@ export default function MealPlansScreen() {
             </View>
             <View style={styles.mealList}>
               {(meals[selectedDate]?.[section] || []).map((recipe, idx) => (
-                <View key={recipe.id ? recipe.id : idx} style={styles.mealItem}>
+                <TouchableOpacity
+                  key={
+                    recipe.id
+                      ? `${section}-${selectedDate}-${recipe.id}-${idx}`
+                      : `${section}-${selectedDate}-idx-${idx}`
+                  }
+                  style={styles.mealItem}
+                  onPress={() =>
+                    recipe.url ? Linking.openURL(recipe.url) : null
+                  }
+                  activeOpacity={0.85}
+                >
                   <View style={styles.mealItemContent}>
                     <Image
                       source={
@@ -490,7 +505,7 @@ export default function MealPlansScreen() {
                     onPress={() => handleRemoveRecipe(section, idx)}
                     style={styles.iconBtn}
                   />
-                </View>
+                </TouchableOpacity>
               ))}
               <Button
                 variant="outline"

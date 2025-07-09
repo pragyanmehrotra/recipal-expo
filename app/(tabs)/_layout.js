@@ -8,12 +8,14 @@ import SignInScreen from "../sign-in";
 import SignUpScreen from "../sign-up";
 import VerifyEmailScreen from "../verify-email";
 
+const ENABLE_AI_CHAT = true; // Set to false to hide AI Chat tab
+
 const TAB_ICONS = {
   browse: ["search-outline", "search"],
   "meal-plans": ["calendar-outline", "calendar"],
-  "grocery-lists": ["list-outline", "list"],
   favorites: ["heart-outline", "heart"],
   profile: ["person-circle-outline", "person-circle"],
+  ...(ENABLE_AI_CHAT && { ai: ["sparkles-outline", "sparkles"] }),
 };
 
 function CustomTabBar({ state, descriptors, navigation }) {
@@ -145,9 +147,9 @@ export default function TabsLayout() {
           initialRouteName="browse"
         >
           <Tabs.Screen name="meal-plans" />
-          <Tabs.Screen name="grocery-lists" />
           <Tabs.Screen name="browse" />
           <Tabs.Screen name="favorites" />
+          {ENABLE_AI_CHAT && <Tabs.Screen name="ai" />}
           <Tabs.Screen name="profile" />
         </Tabs>
       </AuthGate>
