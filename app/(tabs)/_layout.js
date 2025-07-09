@@ -147,8 +147,8 @@ export default function TabsLayout() {
           initialRouteName="browse"
         >
           <Tabs.Screen name="meal-plans" />
-          <Tabs.Screen name="browse" />
           <Tabs.Screen name="favorites" />
+          <Tabs.Screen name="browse" />
           {ENABLE_AI_CHAT && <Tabs.Screen name="ai" />}
           <Tabs.Screen name="profile" />
         </Tabs>
