@@ -6,6 +6,8 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
+  Clipboard,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -159,26 +161,51 @@ export default function ProfileScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isBuyingPremium, setIsBuyingPremium] = useState(false);
   const [isCancellingPremium, setIsCancellingPremium] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showFaqModal, setShowFaqModal] = useState(false);
+  const [showManageSubscriptionModal, setShowManageSubscriptionModal] =
+    useState(false);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [subscriptionError, setSubscriptionError] = useState("");
+
+  // Stripe Price ID for $2.99/mo
+  const STRIPE_PRICE_ID = "price_1Rj3X3CRoKVskGG5hmBIJ4Ow";
+  const APP_URL = "http://localhost:8081"; // Change to your deployed app URL if needed
+  const SUCCESS_URL = `${APP_URL}/profile`;
+  const CANCEL_URL = `${APP_URL}/profile`;
 
   // Premium stubs
   const handleBuyPremium = async () => {
-    setIsBuyingPremium(true);
-    setTimeout(() => {
-      Alert.alert("Premium Purchased", "You are now a premium member!");
-      // updateUser({ ...user, premium: true }); // Uncomment when backend ready
-      setIsBuyingPremium(false);
-    }, 1200);
+    setSubscriptionLoading(true);
+    setSubscriptionError("");
+    try {
+      const res = await apiClient.post("/api/payments/checkout", {
+        customerEmail: user.email,
+        priceId: STRIPE_PRICE_ID,
+        successUrl: SUCCESS_URL,
+        cancelUrl: CANCEL_URL,
+      });
+      if (res.url) {
+        // Redirect to Stripe Checkout
+        Linking.openURL(res.url);
+      } else {
+        setSubscriptionError("Failed to get Stripe checkout URL.");
+      }
+    } catch (err) {
+      setSubscriptionError(err.message || "Failed to start checkout.");
+    } finally {
+      setSubscriptionLoading(false);
+    }
   };
-  const handleCancelPremium = async () => {
-    setIsCancellingPremium(true);
-    setTimeout(() => {
-      Alert.alert(
-        "Premium Cancelled",
-        "Your premium membership has been cancelled."
-      );
-      // updateUser({ ...user, premium: false }); // Uncomment when backend ready
-      setIsCancellingPremium(false);
-    }, 1200);
+
+  // For MVP, cancel just shows a message
+  const handleCancelPremium = () => {
+    Alert.alert(
+      "Contact Support",
+      "To cancel your subscription, please email recipal.meal.planner@gmail.com. Self-service cancellation is coming soon!"
+    );
   };
 
   // Delete Account
@@ -225,7 +252,7 @@ export default function ProfileScreen() {
           onPress={() => router.push("/edit-profile")}
         />
         <AccountSection
-          onManageSubscriptions={() => {}}
+          onManageSubscriptions={() => setShowManageSubscriptionModal(true)}
           onPaymentHistory={() => {}}
           onNotifications={() => {}}
           cardStyle={styles.cardUnified}
@@ -243,7 +270,7 @@ export default function ProfileScreen() {
             <TouchableOpacity
               style={styles.actionButton}
               activeOpacity={0.7}
-              onPress={() => {}}
+              onPress={() => setShowFaqModal(true)}
             >
               <Ionicons name="help-buoy-outline" size={24} color="#FF6B6B" />
               <Text style={styles.actionText}>Frequently Asked Questions</Text>
@@ -251,7 +278,7 @@ export default function ProfileScreen() {
             <TouchableOpacity
               style={styles.actionButton}
               activeOpacity={0.7}
-              onPress={() => {}}
+              onPress={() => setShowContactModal(true)}
             >
               <Ionicons name="mail-outline" size={24} color="#FF6B6B" />
               <Text style={styles.actionText}>Contact Us</Text>
@@ -259,7 +286,7 @@ export default function ProfileScreen() {
             <TouchableOpacity
               style={styles.actionButton}
               activeOpacity={0.7}
-              onPress={() => {}}
+              onPress={() => setShowTermsModal(true)}
             >
               <Ionicons
                 name="document-text-outline"
@@ -271,7 +298,7 @@ export default function ProfileScreen() {
             <TouchableOpacity
               style={styles.actionButton}
               activeOpacity={0.7}
-              onPress={() => {}}
+              onPress={() => setShowPrivacyModal(true)}
             >
               <Ionicons
                 name="shield-checkmark-outline"
@@ -284,6 +311,224 @@ export default function ProfileScreen() {
         </Card>
         <SignOutButton onSignOut={signOut} />
       </ScrollView>
+      {/* FAQ Modal */}
+      <Modal visible={showFaqModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <ScrollView>
+              <Text
+                variant="title"
+                size="large"
+                color="accent"
+                style={{ marginBottom: 16 }}
+              >
+                Frequently Asked Questions
+              </Text>
+              <Text
+                style={{ color: "#fff", marginBottom: 12, fontWeight: "bold" }}
+              >
+                Q: How do I add a new recipe?
+              </Text>
+              <Text style={{ color: "#fff", marginBottom: 16 }}>
+                A: Tap the "+ Add Recipe" button in the meal plan or browse tab,
+                then follow the prompts to add a recipe by URL or search.
+              </Text>
+              <Text
+                style={{ color: "#fff", marginBottom: 12, fontWeight: "bold" }}
+              >
+                Q: Can I edit or delete my recipes?
+              </Text>
+              <Text style={{ color: "#fff", marginBottom: 16 }}>
+                A: Yes! Go to your profile or meal plan, tap on a recipe, and
+                look for edit or delete options.
+              </Text>
+              <Text
+                style={{ color: "#fff", marginBottom: 12, fontWeight: "bold" }}
+              >
+                Q: How do I contact support?
+              </Text>
+              <Text style={{ color: "#fff", marginBottom: 16 }}>
+                A: Use the "Contact Us" button on the profile page to email us
+                directly.
+              </Text>
+              <Text
+                style={{ color: "#fff", marginBottom: 12, fontWeight: "bold" }}
+              >
+                Q: Is my data private?
+              </Text>
+              <Text style={{ color: "#fff", marginBottom: 24 }}>
+                A: Yes, your data is private and never shared with third
+                parties. See our Privacy Policy for more details.
+              </Text>
+              <Button title="Close" onPress={() => setShowFaqModal(false)} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      {/* Terms and Conditions Modal */}
+      <Modal visible={showTermsModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <ScrollView>
+              <Text
+                variant="title"
+                size="large"
+                color="accent"
+                style={{ marginBottom: 16 }}
+              >
+                Terms and Conditions
+              </Text>
+              <Text style={{ color: "#fff", marginBottom: 24 }}>
+                Welcome to Recipal! By using our app, you agree to use it for
+                personal, non-commercial purposes only. You are responsible for
+                your own account security. We do not guarantee the accuracy of
+                recipe data. We reserve the right to update these terms at any
+                time. Continued use of the app means you accept any changes.
+              </Text>
+              <Button title="Close" onPress={() => setShowTermsModal(false)} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      {/* Privacy Policy Modal */}
+      <Modal visible={showPrivacyModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <ScrollView>
+              <Text
+                variant="title"
+                size="large"
+                color="accent"
+                style={{ marginBottom: 16 }}
+              >
+                Privacy Policy
+              </Text>
+              <Text style={{ color: "#fff", marginBottom: 24 }}>
+                We value your privacy. Recipal only collects information
+                necessary to provide our services. We do not share your personal
+                data with third parties. You can request deletion of your
+                account and data at any time. For questions, contact us at
+                recipal.meal.planner@gmail.com.
+              </Text>
+              <Button
+                title="Close"
+                onPress={() => setShowPrivacyModal(false)}
+              />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      {/* Contact Us Modal */}
+      <Modal visible={showContactModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <ScrollView>
+              <Text
+                variant="title"
+                size="large"
+                color="accent"
+                style={{ marginBottom: 16 }}
+              >
+                Contact Us
+              </Text>
+              <Text style={{ color: "#fff", marginBottom: 16 }}>
+                For support, feedback, or questions, please email us at:
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  Clipboard.setString("recipal.meal.planner@gmail.com");
+                  Alert.alert("Copied!", "Email address copied to clipboard.");
+                }}
+                style={{ marginBottom: 24 }}
+              >
+                <Text
+                  style={{ color: "#4ECDC4", fontWeight: "bold", fontSize: 16 }}
+                >
+                  recipal.meal.planner@gmail.com
+                </Text>
+                <Text style={{ color: "#aaa", fontSize: 12 }}>
+                  (Tap to copy)
+                </Text>
+              </TouchableOpacity>
+              <Button
+                title="Close"
+                onPress={() => setShowContactModal(false)}
+              />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      {/* Manage Subscription Modal */}
+      <Modal
+        visible={showManageSubscriptionModal}
+        animationType="slide"
+        transparent
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <ScrollView>
+              <Text
+                variant="title"
+                size="large"
+                color="accent"
+                style={{ marginBottom: 16 }}
+              >
+                Manage Subscription
+              </Text>
+              {user.premium ? (
+                <>
+                  <Text style={{ color: "#fff", marginBottom: 16 }}>
+                    You are a{" "}
+                    <Text style={{ color: "#4ECDC4", fontWeight: "bold" }}>
+                      Premium
+                    </Text>{" "}
+                    member! Thank you for supporting Recipal.
+                  </Text>
+                  <Button
+                    title={
+                      subscriptionLoading
+                        ? "Processing..."
+                        : "Cancel Subscription"
+                    }
+                    onPress={handleCancelPremium}
+                    disabled={subscriptionLoading}
+                    style={{ marginBottom: 16 }}
+                  />
+                </>
+              ) : (
+                <>
+                  <Text style={{ color: "#fff", marginBottom: 16 }}>
+                    Upgrade to{" "}
+                    <Text style={{ color: "#4ECDC4", fontWeight: "bold" }}>
+                      Premium
+                    </Text>{" "}
+                    for just $2.99/month and unlock all features!
+                  </Text>
+                  <Button
+                    title={
+                      subscriptionLoading
+                        ? "Redirecting..."
+                        : "Buy Premium ($2.99/mo)"
+                    }
+                    onPress={handleBuyPremium}
+                    disabled={subscriptionLoading}
+                    style={{ marginBottom: 16 }}
+                  />
+                  {subscriptionError ? (
+                    <Text style={{ color: "#FF6B6B", marginBottom: 8 }}>
+                      {subscriptionError}
+                    </Text>
+                  ) : null}
+                </>
+              )}
+              <Button
+                title="Close"
+                onPress={() => setShowManageSubscriptionModal(false)}
+              />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </Container>
   );
 }
@@ -628,5 +873,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: "#23232b",
     borderRadius: 12,
+  },
+  modalCard: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 16,
+    padding: 24,
+    width: "90%",
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
   },
 });
