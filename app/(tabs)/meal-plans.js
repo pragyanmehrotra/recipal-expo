@@ -8,6 +8,7 @@ import {
   Image,
   TouchableOpacity,
   Linking,
+  ScrollView,
 } from "react-native";
 import { Container, Button, Text, Input, Divider } from "../../components";
 import { Ionicons } from "@expo/vector-icons";
@@ -344,6 +345,50 @@ export default function MealPlansScreen() {
     }
   };
 
+  const [showCustomRecipeModal, setShowCustomRecipeModal] = useState(false);
+  const [customRecipe, setCustomRecipe] = useState({
+    name: "",
+    ingredients: "",
+    steps: "",
+    image: "",
+  });
+
+  const handleOpenCustomRecipe = () => {
+    setCustomRecipe({ name: "", ingredients: "", steps: "", image: "" });
+    setShowCustomRecipeModal(true);
+  };
+
+  const handleSubmitCustomRecipe = () => {
+    if (!customRecipe.name.trim()) return;
+    const recipeObj = {
+      id: `custom-${Date.now()}`,
+      name: customRecipe.name,
+      image: customRecipe.image || null,
+      recipeIngredients: customRecipe.ingredients
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      recipeInstructions: customRecipe.steps
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      isCustom: true,
+    };
+    setMeals((prev) => ({
+      ...prev,
+      [selectedDate]: {
+        ...prev[selectedDate],
+        [pickerSection]: [
+          ...(prev[selectedDate]?.[pickerSection] || []),
+          recipeObj,
+        ],
+      },
+    }));
+    setShowCustomRecipeModal(false);
+    setShowRecipePicker(false);
+    setPickerSection(null);
+  };
+
   return (
     <Container
       backgroundColor="primary"
@@ -621,21 +666,39 @@ export default function MealPlansScreen() {
                         const s = extractServings(raw);
                         return s ? s : "-";
                       })()}
-                      isFavorite={favoriteIds.has(item.id)}
+                      isFavorite={
+                        typeof item.id === "number" && favoriteIds.has(item.id)
+                      }
                       onPress={() => handlePickRecipe(item)}
-                      onToggleFavorite={() => handleToggleFavorite(item.id)}
+                      onToggleFavorite={
+                        typeof item.id === "number"
+                          ? () => handleToggleFavorite(item.id)
+                          : undefined
+                      }
+                      // Only show favorite button if id is a number
+                      showFavorite={typeof item.id === "number"}
                     />
                   </View>
                 )}
                 ListEmptyComponent={
-                  <Text
-                    color="muted"
-                    style={{ textAlign: "center", marginTop: 20 }}
-                  >
-                    {search.trim()
-                      ? "No recipes found."
-                      : "Start typing to search recipes..."}
-                  </Text>
+                  <View style={{ alignItems: "center", marginTop: 20 }}>
+                    <Text
+                      color="muted"
+                      style={{ textAlign: "center", marginBottom: 12 }}
+                    >
+                      {search.trim()
+                        ? "No recipes found."
+                        : "Start typing to search recipes..."}
+                    </Text>
+                    {search.trim() && (
+                      <Button
+                        title={"Add Custom Recipe"}
+                        variant="outline"
+                        onPress={handleOpenCustomRecipe}
+                        style={{ marginTop: 8 }}
+                      />
+                    )}
+                  </View>
                 }
                 contentContainerStyle={styles.searchResultsContainer}
                 onEndReached={loadMoreResults}
@@ -660,6 +723,68 @@ export default function MealPlansScreen() {
               onPress={() => setShowRecipePicker(false)}
               style={{ marginTop: 16 }}
             />
+          </View>
+        </View>
+      </Modal>
+      {/* Custom Recipe Modal */}
+      <Modal visible={showCustomRecipeModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <ScrollView>
+              <Text
+                variant="title"
+                size="large"
+                color="accent"
+                style={{ marginBottom: 16 }}
+              >
+                Add Custom Recipe
+              </Text>
+              <Input
+                placeholder="Recipe Name"
+                value={customRecipe.name}
+                onChangeText={(name) =>
+                  setCustomRecipe((r) => ({ ...r, name }))
+                }
+                style={{ marginBottom: 12 }}
+              />
+              <Input
+                placeholder="Ingredients (one per line)"
+                value={customRecipe.ingredients}
+                onChangeText={(ingredients) =>
+                  setCustomRecipe((r) => ({ ...r, ingredients }))
+                }
+                multiline
+                style={{ marginBottom: 12, minHeight: 60 }}
+              />
+              <Input
+                placeholder="Steps (one per line)"
+                value={customRecipe.steps}
+                onChangeText={(steps) =>
+                  setCustomRecipe((r) => ({ ...r, steps }))
+                }
+                multiline
+                style={{ marginBottom: 12, minHeight: 60 }}
+              />
+              <Input
+                placeholder="Image URL (optional)"
+                value={customRecipe.image}
+                onChangeText={(image) =>
+                  setCustomRecipe((r) => ({ ...r, image }))
+                }
+                style={{ marginBottom: 16 }}
+              />
+              <Button
+                title="Add Recipe"
+                onPress={handleSubmitCustomRecipe}
+                disabled={!customRecipe.name.trim()}
+                style={{ marginBottom: 8 }}
+              />
+              <Button
+                title="Cancel"
+                variant="ghost"
+                onPress={() => setShowCustomRecipeModal(false)}
+              />
+            </ScrollView>
           </View>
         </View>
       </Modal>
