@@ -159,6 +159,42 @@ The app includes a custom Tamagui configuration (`tamagui.config.js`) with:
 - ✅ Responsive design
 - ✅ Modular component structure
 
+## 🖼️ Screenshots
+
+Below are current screenshots of the app UI:
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="assets/images/home_screen.png" alt="Home Screen" width="350" height="350" style="object-fit:cover;" /><br />Home Screen
+    </td>
+    <td align="center">
+      <img src="assets/images/AI_screen.png" alt="AI Screen" width="350" height="350" style="object-fit:cover;" /><br />AI Screen
+    </td>
+    <td align="center">
+      <img src="assets/images/meal_planner_screen.png" alt="Meal Planner Screen" width="350" height="350" style="object-fit:cover;" /><br />Meal Planner
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="assets/images/favorites_screen.png" alt="Favorites Screen" width="350" height="350" style="object-fit:cover;" /><br />Favorites
+    </td>
+    <td align="center">
+      <img src="assets/images/profile_screen.png" alt="Profile Screen" width="350" height="350" style="object-fit:cover;" /><br />Profile
+    </td>
+    <td align="center">
+      <img src="assets/images/create_account_screen.png" alt="Create Account Screen" width="350" height="350" style="object-fit:cover;" /><br />Create Account
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="assets/images/signin_screen.png" alt="Sign In Screen" width="350" height="350" style="object-fit:cover;" /><br />Sign In
+    </td>
+    <td></td>
+    <td></td>
+  </tr>
+</table>
+
 ## 🚧 Next Steps
 
 - [ ] Add React Navigation for screen transitions
