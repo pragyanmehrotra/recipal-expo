@@ -166,29 +166,29 @@ Below are current screenshots of the app UI:
 <table>
   <tr>
     <td align="center">
-      <img src="../screenshots/home_screen.png" alt="Home Screen" width="350" height="350" style="object-fit:cover;" /><br />Home Screen
+      <img src="../screenshots/home_screen.png" alt="Home Screen" width="350" /><br />Home Screen
     </td>
     <td align="center">
-      <img src="../screenshots/AI_screen.png" alt="AI Screen" width="350" height="350" style="object-fit:cover;" /><br />AI Screen
+      <img src="../screenshots/AI_screen.png" alt="AI Screen" width="350" /><br />AI Screen
     </td>
     <td align="center">
-      <img src="../screenshots/meal_planner_screen.png" alt="Meal Planner Screen" width="350" height="350" style="object-fit:cover;" /><br />Meal Planner
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="../screenshots/favorites_screen.png" alt="Favorites Screen" width="350" height="350" style="object-fit:cover;" /><br />Favorites
-    </td>
-    <td align="center">
-      <img src="../screenshots/profile_screen.png" alt="Profile Screen" width="350" height="350" style="object-fit:cover;" /><br />Profile
-    </td>
-    <td align="center">
-      <img src="../screenshots/create_account_screen.png" alt="Create Account Screen" width="350" height="350" style="object-fit:cover;" /><br />Create Account
+      <img src="../screenshots/meal_planner_screen.png" alt="Meal Planner Screen" width="350" /><br />Meal Planner
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="../screenshots/signin_screen.png" alt="Sign In Screen" width="350" height="350" style="object-fit:cover;" /><br />Sign In
+      <img src="../screenshots/favorites_screen.png" alt="Favorites Screen" width="350" /><br />Favorites
+    </td>
+    <td align="center">
+      <img src="../screenshots/profile_screen.png" alt="Profile Screen" width="350" /><br />Profile
+    </td>
+    <td align="center">
+      <img src="../screenshots/create_account_screen.png" alt="Create Account Screen" width="350" /><br />Create Account
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="../screenshots/signin_screen.png" alt="Sign In Screen" width="350" /><br />Sign In
     </td>
     <td></td>
     <td></td>
