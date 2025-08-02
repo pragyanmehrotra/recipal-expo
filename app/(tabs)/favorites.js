@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { useAuth } from "../../hooks/auth";
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useState } from "react";
 import { FlatList, ActivityIndicator, View, Linking } from "react-native";
 import { Container, Header } from "../../components";
 import RecipeCard from "../../components/RecipeCard";
@@ -16,7 +18,6 @@ function extractServings(servingsField) {
 // Helper to parse ISO 8601 durations like PT35M, PT1H20M, PT45S
 function parseIsoDuration(iso) {
   if (!iso || typeof iso !== "string" || !iso.startsWith("P")) return iso;
-  // Example: PT1H20M, PT35M, PT45S
   const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!match) return iso;
   const [, h, m, s] = match.map(Number);
@@ -31,22 +32,27 @@ export default function FavoritesScreen() {
   const favoriteApi = useFavoriteApi();
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
   const [removing, setRemoving] = useState({});
   const router = useRouter();
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const data = await favoriteApi.listFavorites();
-        setRecipes(data.favorites);
-      } catch (e) {
-        setRecipes([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchData = async () => {
+        setLoading(true);
+        try {
+          const data = await favoriteApi.listFavorites({ headers: { Authorization: `Bearer ${token}` } });
+          setRecipes(data.favorites);
+        } catch (e) {
+          setRecipes([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchData();
+      return () => {};
+    }, [token, favoriteApi])
+  );
 
   const handleToggleFavorite = async (id) => {
     setRemoving((r) => ({ ...r, [id]: true }));
@@ -59,18 +65,9 @@ export default function FavoritesScreen() {
 
   return (
     <Container>
-      <Header
-        title="Favorites"
-        subtitle="Your saved recipes"
-        titleSize="xxlarge"
-        subtitleSize="medium"
-      />
+      <Header title="Favorites" subtitle="Your saved recipes" titleSize="xxlarge" subtitleSize="medium" />
       {loading ? (
-        <ActivityIndicator
-          size="large"
-          color="#FF6B6B"
-          style={{ marginTop: 40 }}
-        />
+        <ActivityIndicator size="large" color="#FF6B6B" style={{ marginTop: 40 }} />
       ) : recipes.length === 0 ? (
         <View style={{ marginTop: 40, alignItems: "center" }}>
           <Header title="No favorites yet" titleSize="large" />
@@ -93,8 +90,7 @@ export default function FavoritesScreen() {
                   "-"
               )}
               servings={(() => {
-                const raw =
-                  item.servings || item.recipe_yield || item.data?.recipeYield;
+                const raw = item.servings || item.recipe_yield || item.data?.recipeYield;
                 const s = extractServings(raw);
                 return s ? s : "-";
               })()}
