@@ -6,24 +6,23 @@ import {
   ActivityIndicator,
   Dimensions,
   Linking,
+  RefreshControl,
 } from "react-native";
 import { Container, Header } from "../../components";
 import SearchBar from "../../components/SearchBar";
 import RecipeCard from "../../components/RecipeCard";
 import { useRecipeApi, useFavoriteApi } from "../../api/index";
 import { useRouter } from "expo-router";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const numColumns = 2;
 
-// Helper to get recipe id (always local DB id now)
 function getRecipeId(recipe) {
   return recipe.id;
 }
 
-// Helper to parse ISO 8601 durations like PT35M, PT1H20M, PT45S
 function parseIsoDuration(iso) {
   if (!iso || typeof iso !== "string" || !iso.startsWith("P")) return iso;
-  // Example: PT1H20M, PT35M, PT45S
   const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!match) return iso;
   const [, h, m, s] = match.map(Number);
@@ -34,7 +33,6 @@ function parseIsoDuration(iso) {
   return out.length ? out.join(" ") : iso;
 }
 
-// Helper to extract the first number from servings string
 function extractServings(servingsField) {
   if (!servingsField || typeof servingsField !== "string") return null;
   const match = servingsField.match(/\d+/);
@@ -47,33 +45,27 @@ export default function BrowseRecipesScreen() {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  // Use a ref for offset to avoid async state issues
   const offsetRef = useRef(0);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true); // Only for search
+  const [hasMore, setHasMore] = useState(true);
   const recipeApi = useRecipeApi();
   const favoriteApi = useFavoriteApi();
   const [favoriteIds, setFavoriteIds] = useState(new Set());
   const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
 
   const PAGE_SIZE = 10;
 
-  // Load favorites on mount
   useEffect(() => {
     (async () => {
       try {
         const data = await favoriteApi.listFavorites();
-        // data.favorites is now an array of recipe objects
         setFavoriteIds(new Set(data.favorites.map((r) => r.id)));
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    // Prevent fetch loop if already loading
     if (loading || isFetchingMore) return;
     setRecipes([]);
     if (search.trim()) {
@@ -83,7 +75,6 @@ export default function BrowseRecipesScreen() {
     } else {
       fetchRandomRecipes(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const fetchRandomRecipes = async (replace = false) => {
@@ -92,14 +83,12 @@ export default function BrowseRecipesScreen() {
     else setIsFetchingMore(true);
     setError(null);
     try {
-      const data = await recipeApi.searchRecipes("", {
-        number: PAGE_SIZE,
-      });
+      const data = await recipeApi.searchRecipes("", { number: PAGE_SIZE });
       const newRecipes = data.recipes || data.results || [];
       setRecipes(replace ? newRecipes : [...recipes, ...newRecipes]);
     } catch (e) {
       setError("Failed to load recipes");
-      setHasMore(false); // Prevent infinite scroll on error
+      setHasMore(false);
       if (replace) setRecipes([]);
     } finally {
       if (replace) setLoading(false);
@@ -123,7 +112,7 @@ export default function BrowseRecipesScreen() {
       setHasMore(newRecipes.length === PAGE_SIZE);
     } catch (e) {
       setError("No recipes found");
-      setHasMore(false); // Prevent infinite scroll on error
+      setHasMore(false);
       if (replace) setRecipes([]);
     } finally {
       if (replace) setLoading(false);
@@ -148,6 +137,21 @@ export default function BrowseRecipesScreen() {
       fetchRecipes(search.trim(), 0, true);
     } else {
       fetchRandomRecipes(true);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      if (search.trim()) {
+        offsetRef.current = 0;
+        setHasMore(true);
+        await fetchRecipes(search.trim(), 0, true);
+      } else {
+        await fetchRandomRecipes(true);
+      }
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -176,6 +180,13 @@ export default function BrowseRecipesScreen() {
         });
       }
     };
+
+    const servingsValue = (() => {
+      const raw = item.servings || item.recipe_yield || item.data?.recipeYield;
+      const s = extractServings(raw);
+      return s !== null ? s.toString() : "-";
+    })();
+
     return (
       <RecipeCard
         image={item.image}
@@ -189,12 +200,7 @@ export default function BrowseRecipesScreen() {
             item.data?.cook_time ||
             "-"
         )}
-        servings={(() => {
-          const raw =
-            item.servings || item.recipe_yield || item.data?.recipeYield;
-          const s = extractServings(raw);
-          return s ? s : "-";
-        })()}
+        servings={servingsValue}
         isFavorite={isFavorite}
         onPress={() => (item.url ? Linking.openURL(item.url) : null)}
         onToggleFavorite={handleToggleFavorite}
@@ -248,6 +254,15 @@ export default function BrowseRecipesScreen() {
               />
             ) : null
           }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              ProgressViewComponent={LoadingSpinner}
+              tintColor="#FF6B6B"
+              title="Refreshing..."
+            />
+          }
         />
       )}
     </Container>
@@ -258,6 +273,7 @@ const styles = StyleSheet.create({
   list: {
     paddingBottom: 32,
     paddingHorizontal: 4,
+    paddingTop: 80, // Added to require longer pull-to-refresh
   },
   centered: {
     flex: 1,
